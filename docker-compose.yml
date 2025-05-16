@@ -1,0 +1,52 @@
+version: '3.8'
+
+services: 
+  backend:
+    build:
+      context: ./backend/API/simpleapi
+    container_name: backend-container  # Nom fixe pour que le proxy le trouve facilement
+    ports:
+      - "8080:8080"  # Port exposé pour que Apache puisse le joindre
+    networks:
+      - my-network
+    depends_on:
+      - database
+
+  database:
+    build:
+      context: ./database/initdb
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: usr
+      POSTGRES_PASSWORD: pwd
+    volumes:
+      - pgdata:/var/lib/postgresql/data  # persistance
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - my-network
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    ports:
+      - "8090:8080"
+    networks:
+      - my-network
+    depends_on:
+      - database  
+
+  httpd:
+    build:
+      context: ./http-server
+    ports:
+      - "8082:80"  # expose le port 80 du container en 8082 sur l'hôte
+    networks:
+      - my-network
+    depends_on:
+      - backend
+
+networks:
+  my-network:
+
+volumes:
+  pgdata:  # volume persistant pour Postgres
